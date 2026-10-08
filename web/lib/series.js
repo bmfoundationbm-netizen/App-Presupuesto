@@ -11,7 +11,8 @@ export function evolucionAnual(ctx, anio, fuente = 'real') {
   const S = res.secciones;
   return res.meses.map((mes, i) => {
     const cob = fuente === 'real' ? res.cobertura[i] : 0;
-    const futuro = fuente === 'real' && mes > ctx.mesHoy;
+    // Con lo real, el mes en curso tampoco se muestra: todavía no terminó.
+    const futuro = fuente === 'real' && mes >= ctx.mesHoy;
     return {
       mes, futuro,
       ingresos: S.ingresos[fuente][i],
@@ -50,14 +51,16 @@ export function planContraReal(ctx, meses) {
 // Gastos e ingresos contra la inflación: índices base 100 en el primer mes con datos, y
 // el ingreso en pesos del último mes (ingreso real).
 export function contraInflacion(ctx, desde, hasta) {
-  const meses = rangoMeses(desde, hasta).filter((m) => m <= ctx.mesHoy && mesConDatos(ctx, m));
+  // Solo meses terminados: el mes en curso todavía está incompleto.
+  const meses = rangoMeses(desde, hasta).filter((m) => m < ctx.mesHoy && mesConDatos(ctx, m));
   if (meses.length < 2) return { puntos: [], meses };
   const region = ctx.hogar.region;
   const base = meses[0], fin = meses[meses.length - 1];
   const puntos = meses.map((mes) => {
     const t = totalesPeriodo(ctx, [mes], 'real');
     const gasto = t.porSeccion.gastos + t.porSeccion.inesperados - t.cobertura;
-    const ingreso = ingresosDelMes(ctx, mes, 'real');
+    // Sin aguinaldo: es estacional y distorsiona la comparación del sueldo con los precios.
+    const ingreso = ingresosDelMes(ctx, mes, 'real', { sinAguinaldo: true });
     const ipc = ctx.indices.factor(region, 'general', base, mes);
     const aHoy = ctx.indices.factor(region, 'general', mes, fin);
     return { mes, gasto, ingreso, ipc: ipc.f * 100, tipoIpc: ipc.tipo, ingresoReal: Math.round(ingreso * aHoy.f), gastoReal: Math.round(gasto * aHoy.f) };

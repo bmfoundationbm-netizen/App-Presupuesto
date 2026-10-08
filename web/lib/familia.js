@@ -43,10 +43,12 @@ export function canastaHogar(ctx, mes) {
 }
 
 // Ingresos del hogar en un mes, sin contar el sobrante que viene del mes anterior.
-export function ingresosDelMes(ctx, mes, fuente = 'real') {
+export function ingresosDelMes(ctx, mes, fuente = 'real', { sinAguinaldo = false } = {}) {
   const t = totalesPeriodo(ctx, [mes], fuente);
   let total = t.porSeccion.ingresos;
-  for (const l of ctx.hogar.lineas) if (l.auto === 'saldo') total -= t.porLinea.get(l.id) || 0;
+  for (const l of ctx.hogar.lineas) {
+    if (l.auto === 'saldo' || (sinAguinaldo && l.auto === 'aguinaldo')) total -= t.porLinea.get(l.id) || 0;
+  }
   return total;
 }
 

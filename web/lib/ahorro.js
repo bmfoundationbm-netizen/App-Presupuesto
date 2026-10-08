@@ -53,7 +53,7 @@ export function estadoMeta(ctx, meta) {
   const mesesRestantes = meta.fecha ? Math.max(1, mesesEntre(ctx.mesHoy, meta.fecha) + 1) : null;
   return {
     meta, saldo, objetivoHoy, objetivoFinal, faltante, mesesRestantes,
-    aporteSugerido: mesesRestantes ? Math.ceil(faltante / mesesRestantes) : null,
+    aporteSugerido: mesesRestantes ? Math.ceil(faltante / mesesRestantes / 10000) * 10000 : null,
     avance: objetivoFinal > 0 ? Math.min(1, Math.max(0, saldo / objetivoFinal)) : (saldo > 0 ? 1 : 0),
     alcanzada: objetivoFinal > 0 && saldo >= objetivoFinal,
     vencida: !!(meta.fecha && meta.fecha < ctx.mesHoy && saldo < objetivoFinal),

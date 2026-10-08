@@ -13,8 +13,12 @@ import { referenciaParecidos, gastoPorIndice, ingresosDelMes, situacion } from '
 import { estadoMeta } from './ahorro.js';
 import { categoria, indiceDeLinea } from './modelo.js';
 import { nombreIndice, CLASES } from './catalogo.js';
-import { sumarMeses, rangoMeses, nombreMes, anioDe, mesesDelAnio } from './fechas.js';
-import { pesos, porcentaje } from './dinero.js';
+import { sumarMeses, rangoMeses, nombreMes as nombreMesBase, anioDe, mesesDelAnio, capitalizar } from './fechas.js';
+import { pesos as pesosExactos, porcentaje } from './dinero.js';
+
+// En los textos: meses con mayúscula y pesos sin centavos.
+const nombreMes = (m, op) => capitalizar(nombreMesBase(m, op));
+const pesos = (c) => pesosExactos(Math.round(c / 100) * 100);
 
 export function periodoAnalisis(ctx, { modo = 'ultimos', mes } = {}) {
   if (modo === 'mes' && mes) {
@@ -300,9 +304,9 @@ export function alertas(ctx) {
     if (!(plan > 0)) continue;
     const mesTxt = nombreMes(mes, { conAnio: false });
     if (real > plan) {
-      out.push({ id: `pasado-${c.id}-${mes}`, nivel: 'alerta', titulo: `${c.nombre}: te pasaste de lo planeado`, detalle: `Llevás ${pesos(real)} de ${pesos(plan)} planeados para ${mesTxt} (${porcentaje(real / plan, 0)}).`, accion: { tipo: 'planilla', mes } });
+      out.push({ id: `pasado-${c.id}-${mes}`, nivel: 'alerta', titulo: `${c.nombre}: te pasaste de lo planeado`, detalle: `Llevás ${pesos(real)} de ${pesos(plan)} planeados para ${mesTxt.toLowerCase()} (${porcentaje(real / plan, 0)}).`, accion: { tipo: 'planilla', mes } });
     } else if (planVar > 0 && realVar / planVar >= 0.9) {
-      out.push({ id: `cerca-${c.id}-${mes}`, nivel: 'aviso', titulo: `${c.nombre}: ya usaste el ${porcentaje(realVar / planVar, 0)} de lo variable`, detalle: `Quedan ${pesos(planVar - realVar)} de lo planeado para ${mesTxt} en gastos variables.`, accion: { tipo: 'planilla', mes } });
+      out.push({ id: `cerca-${c.id}-${mes}`, nivel: 'aviso', titulo: `${c.nombre}: ya usaste el ${porcentaje(realVar / planVar, 0)} de lo variable`, detalle: `Quedan ${pesos(planVar - realVar)} de lo planeado para ${mesTxt.toLowerCase()} en gastos variables.`, accion: { tipo: 'planilla', mes } });
     }
   }
 
@@ -330,7 +334,7 @@ export function alertas(ctx) {
   // Cuotas que terminan este mes: liberan plata desde el que viene.
   for (const c of h.cuotas) {
     if (sumarMeses(c.primerMes, c.cantidad - 1) === mes) {
-      out.push({ id: `fin-cuotas-${c.id}`, nivel: 'info', titulo: `Este mes termina "${c.descripcion}"`, detalle: `Desde ${nombreMes(sumarMeses(mes, 1), { conAnio: false })} se liberan ${pesos(c.montoCuota)} por mes.` });
+      out.push({ id: `fin-cuotas-${c.id}`, nivel: 'info', titulo: `Este mes termina "${c.descripcion}"`, detalle: `Desde ${nombreMesBase(sumarMeses(mes, 1), { conAnio: false })} se liberan ${pesos(c.montoCuota)} por mes.` });
     }
   }
 
@@ -349,7 +353,7 @@ export function alertas(ctx) {
     const ing = ingresosDelMes(ctx, ultimo, 'real');
     const s = situacion(ctx, ultimo, ing);
     if (s && s.nivel !== 'arriba' && ing > 0) {
-      out.push({ id: `canasta-${ultimo}`, nivel: 'info', titulo: `Los ingresos de ${nombreMes(ultimo, { conAnio: false })} no llegan a la canasta básica total`, detalle: `Para este hogar es de ${pesos(s.pobreza)} por mes (${s.ae.toFixed(2).replace('.', ',')} adultos equivalentes).`, accion: { tipo: 'familia' } });
+      out.push({ id: `canasta-${ultimo}`, nivel: 'info', titulo: `Los ingresos de ${nombreMesBase(ultimo, { conAnio: false })} no llegan a la canasta básica total`, detalle: `Para este hogar es de ${pesos(s.pobreza)} por mes (${s.ae.toFixed(2).replace('.', ',')} adultos equivalentes).`, accion: { tipo: 'familia' } });
     }
   }
 
