@@ -183,7 +183,9 @@ del REM del BCRA. Si una fuente falla se conserva lo anterior y se anota el erro
    `capturePage`. Los diálogos nativos se reemplazan por rutas de prueba.
    `capturePage` puede devolver el cuadro anterior: esperar un poco antes de capturar.
 3. Empaquetado: `npx electron-builder --win dir` y abrir `dist/win-unpacked/Mi Presupuesto.exe`
-   con `--remote-debugging-port` para revisarlo por CDP.
+   con `--remote-debugging-port` para revisarlo por CDP. El portable lanza el programa
+   real como proceso hijo desde `%TEMP%`: al terminar la prueba hay que cerrar esos
+   procesos "Mi Presupuesto" y borrar la carpeta de prueba de `%APPDATA%`.
 
 ## Publicar
 
