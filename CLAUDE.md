@@ -54,13 +54,25 @@ No revertirlas sin preguntar.
 ## Estructura
 
 ```
-electron/        proceso principal (ventana, archivos, cifrado, exportar, datos, Claude)
-web/             interfaz (HTML + módulos ES, sin framework). web/package.json = type module
-  lib/           lógica pura, sin DOM: se prueba con Node (npm test)
-  vistas/        pantallas
+electron/        proceso principal
+  main.js        ventana, protocolo app://mp, bloqueo de red de la ventana, IPC
+  archivo.js     .presupuesto: leer, guardar seguro (tmp + rename), cifrado, respaldos
+  datos.js       datos públicos (incluidos o bajados del repo), dólar del día, versión nueva
+  exportar.js    Excel (ExcelJS), PDF (printToPDF en ventana oculta), leer planillas (SheetJS)
+  claude.js      consejo con Claude (SDK oficial; clave con safeStorage)
+  ajustes.js     ajustes del programa en userData/ajustes.json
+web/             interfaz: HTML + módulos ES, sin framework. web/package.json = type module
+  app.js         arranque, estructura de la ventana, navegación y atajos
+  estado.js      hogar abierto, mutar() con deshacer/rehacer, guardado automático
+  ui.js          h`` (escapa todo), íconos, diálogos, avisos, menús
+  acciones.js    abrir, ejemplo, guardar como, cerrar
+  vistas/        una pantalla por archivo + dialogos.js, cierre.js, importar.js, exportar.js
+  graficos/      colores.js (familias de color) y graficos.js (d3: Sankey, torta, líneas, barras)
+  lib/           motor de cálculo, sin DOM (lo que prueban las pruebas)
   data/          datos.json (datos públicos) y engho.json (encuesta de gastos, fijo)
-tools/           construir-datos.js (semanal, GitHub Actions) y procesar-engho.js (una vez)
+tools/           construir-datos.js (semanal), procesar-engho.js (una vez), generar-icono.js
 pruebas/         node:test sobre web/lib con los datos públicos reales
+.github/workflows  pruebas.yml, datos.yml (lunes), publicar.yml (etiquetas v*)
 ```
 
 ### web/lib
@@ -78,8 +90,48 @@ pruebas/         node:test sobre web/lib con los datos públicos reales
 | `familia.js` | adulto equivalente, canasta del hogar, hogares parecidos, costo por persona |
 | `presupuestos.js` | copiar y actualizar planes por IPC, plan por año, proyectos, recortes |
 | `analisis.js` | 50/30/20, parecidos, historial, topes, plan de recorte, avisos |
+| `importar.js` | CSV, detección de columnas de bancos, reglas, planillas con meses en columnas |
 | `sankey.js`, `series.js` | datos de los gráficos |
-| `ejemplo.js` | hogar de ejemplo (familia tipo de GBA) |
+| `ejemplo.js` | hogar de ejemplo (familia tipo de GBA, se arma con los datos reales) |
+
+## Interfaz: decisiones
+
+- **La ventana no tiene Node ni internet** (sandbox, contextIsolation, todo pedido http
+  cancelado). Todo lo de red y disco pasa por `preload.js` → `main.js`.
+- **Todo texto de un archivo pasa por `h```** (escapa). Solo `crudo()` entra como HTML.
+- **mutar(fn)** es la única forma de cambiar el hogar: guarda para deshacer, recalcula el
+  contexto, programa el guardado (700 ms) y redibuja. `historial: false` para cosas de
+  interfaz (plegar una categoría).
+- **Cada redibujo crea un nodo nuevo para la vista** (los listeners no se duplican) y
+  conserva el desplazamiento de los elementos con `data-scroll`.
+- **Planilla:** los montos se muestran en pesos enteros; el detalle, con centavos. Editar
+  un fijo en el plan repite el monto en los meses siguientes (`fijarPlanFijo`). Escribir un
+  total en una celda con gastos sueltos pide confirmación (el total manda sobre la suma).
+- **El mes en curso no entra** en el análisis, la evolución ni el gráfico de inflación: está
+  incompleto. En los avisos, los fijos supuestos no cuentan y "cerca del límite" solo
+  aplica al mes en curso.
+
+## Colores de los datos
+
+Guía de visualización (skill dataviz), validada con su script:
+- 8 familias fijas por significado, nunca por tamaño: casa (vivienda + equipamiento),
+  comida (alimentos + alcohol), salud, educación, ocio (recreación + restaurantes), ahorro
+  (ahorro + inversiones), transporte, deudas (deudas + imprevistos); otros en gris
+  (ropa, comunicación, varios). Las 12 categorías se distinguen por nombre o tabla.
+- Gris de "Otros": `#6f6e69` en claro, `#a3a19a` en oscuro.
+- Pares que se confunden (ver `CHOCAN` en `graficos/colores.js`): la torta busca un orden
+  circular sin esos vecinos y tiene como mucho 5 grupos + Otros.
+- Evolución mensual: series 1-3 (azul, naranja, aqua), las únicas que pasan todos los
+  pares. Verde + naranja falla con daltonismo: no usar juntos.
+- Texto de los gráficos siempre con tintas de texto (clases `eje-texto`, `etiqueta-*`).
+
+## Claude (opcional)
+
+Modelo por defecto `claude-opus-5-5` con `output_config.effort: 'medium'` y respaldo del
+servidor (`fallbacks: 'default'`, beta `server-side-fallback-2026-07-01`); también se
+ofrecen `claude-sonnet-5-5` y `claude-haiku-4-5` (sin esfuerzo ni respaldo). Streaming con
+`finalMessage()`; se revisa `stop_reason === 'refusal'`. Errores con las clases del SDK.
+Antes de tocar esto, cargar la skill claude-api.
 
 ## Cómo funciona lo que no es obvio
 
@@ -125,5 +177,17 @@ del REM del BCRA. Si una fuente falla se conserva lo anterior y se anota el erro
 ## Verificar cambios
 
 1. `npm test` (node:test, sin dependencias).
-2. Probar la app en Electron real: ver la memoria `verificacion-electron`
-   (`env -u ELECTRON_RUN_AS_NODE`, ventana fuera de pantalla, perfil aislado).
+2. Probar en Electron real con un arnés propio (en esta máquina, ver la memoria
+   `verificacion-electron`): `env -u ELECTRON_RUN_AS_NODE`, perfil aislado con
+   `app.setPath('userData')`, ventana fuera de pantalla, pasos con `executeJavaScript` y
+   `capturePage`. Los diálogos nativos se reemplazan por rutas de prueba.
+   `capturePage` puede devolver el cuadro anterior: esperar un poco antes de capturar.
+3. Empaquetado: `npx electron-builder --win dir` y abrir `dist/win-unpacked/Mi Presupuesto.exe`
+   con `--remote-debugging-port` para revisarlo por CDP.
+
+## Publicar
+
+- `git tag vX.Y.Z && git push --tags` → `publicar.yml` arma instalador y portable y crea la
+  release. El programa avisa de la versión nueva (no se actualiza solo).
+- `datos.yml` corre los lunes, sube `web/data/datos.json` y el programa lo baja solo.
+- No hay firma de código: Windows muestra SmartScreen la primera vez.

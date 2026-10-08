@@ -1,7 +1,7 @@
 {
   "name": "mi-presupuesto",
   "productName": "Mi Presupuesto",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Presupuesto familiar de escritorio, estilo planilla: ingresos, gastos, imprevistos, ahorro, deudas e inversiones, con IPC por categoría, canasta básica y gráfico de Sankey.",
   "main": "electron/main.js",
   "private": true,
@@ -26,5 +26,48 @@
   "devDependencies": {
     "electron": "^44.7.0",
     "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "ar.bmfoundation.mipresupuesto",
+    "productName": "Mi Presupuesto",
+    "copyright": "Copyright © 2026 bmfoundationbm-netizen · licencia MIT",
+    "files": [
+      "electron/**/*",
+      "web/**/*",
+      "package.json",
+      "LICENSE",
+      "!web/**/*.map"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "fileAssociations": [
+      {
+        "ext": "presupuesto",
+        "name": "Hogar de Mi Presupuesto",
+        "description": "Hogar de Mi Presupuesto",
+        "icon": "build/icon.ico",
+        "role": "Editor"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "shortcutName": "Mi Presupuesto",
+      "artifactName": "Mi-Presupuesto-${version}-instalador.${ext}",
+      "uninstallDisplayName": "Mi Presupuesto"
+    },
+    "portable": {
+      "artifactName": "Mi-Presupuesto-${version}-portable.${ext}"
+    }
   }
 }

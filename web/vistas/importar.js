@@ -45,7 +45,8 @@ function prepararHoja() {
   w.guardarPlantilla = !plantilla;
   w.nombrePlantilla = plantilla ? plantilla.nombre : w.archivo.replace(/\.[^.]+$/, '');
   const gastos = hg.lineas.filter((l) => seccionDeLinea(hg, l) === 'gastos' && !l.auto);
-  w.porDefecto = (gastos.find((l) => /otros gastos/i.test(l.nombre)) || gastos[0] || {}).id || '';
+  // Lo que no se reconoce va a "Otros gastos" si existe; si no, queda sin elegir.
+  w.porDefecto = (gastos.find((l) => /otros gastos/i.test(l.nombre)) || {}).id || '';
   // Planilla
   w.encMeses = encMeses >= 0 ? encMeses : 0;
   w.colConcepto = 0;
@@ -133,7 +134,7 @@ function cuerpoMovimientos(hg, f, colOpc) {
     </div>
     <div class="fila-campos">
       ${c.monto >= 0 ? h`<div class="campo"><label>En la columna de monto</label><select class="entrada" data-w="signo">${opciones([['negativoEsGasto', 'Los gastos vienen en negativo'], ['positivo', 'Todo es gasto (resumen de tarjeta)']], w.signo)}</select></div>` : ''}
-      <div class="campo"><label>Lo que no se reconozca va a</label><select class="entrada" data-w="porDefecto">${opcionesLineas(hg, w.porDefecto)}</select></div>
+      <div class="campo"><label>Lo que no se reconozca va a</label><select class="entrada" data-w="porDefecto"><option value="">Elegirlo a mano (no se importa si no)</option>${opcionesLineas(hg, w.porDefecto)}</select></div>
       <div class="campo"><label class="casilla" style="margin-top:22px"><input type="checkbox" data-w="guardarPlantilla" ${w.guardarPlantilla ? crudo('checked') : ''}> Recordar estas columnas para este banco</label></div>
     </div>
     ${!listos ? h`<div class="nota aviso">${icono('alerta')}Elegí al menos la columna de fecha y la de monto (o las de débito y crédito).</div>` : h`
@@ -243,7 +244,8 @@ function importar() {
       }
     });
     cerrarVentana();
-    avisar(`Se importaron ${elegidas.length} movimientos${reglasNuevas ? `; se aprendieron ${reglasNuevas} reglas para la próxima` : ''}.`, { tipo: 'ok', duracion: 7000, accion: { texto: 'Ver', fn: () => irA('movimientos') } });
+    const aprendidas = reglasNuevas === 1 ? '; se aprendió 1 regla para la próxima' : reglasNuevas > 1 ? `; se aprendieron ${reglasNuevas} reglas para la próxima` : '';
+    avisar(`Se importaron ${elegidas.length} ${elegidas.length === 1 ? 'movimiento' : 'movimientos'}${aprendidas}.`, { tipo: 'ok', duracion: 7000, accion: { texto: 'Ver', fn: () => irA('movimientos') } });
     return;
   }
   mutar((x) => {

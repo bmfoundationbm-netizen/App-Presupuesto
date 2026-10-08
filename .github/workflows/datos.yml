@@ -1,0 +1,45 @@
+# Mi Presupuesto · datos públicos de la semana
+#
+# Todos los lunes (y a mano desde Actions) vuelve a bajar el IPC, la canasta básica, el
+# dólar y el REM, y sube web/data/datos.json al repositorio. Los programas instalados
+# bajan ese archivo solos, así que no hace falta una versión nueva para tener datos nuevos.
+# El commit semanal además evita que GitHub apague la tarea por falta de actividad.
+name: Datos públicos
+
+on:
+  schedule:
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: datos
+  cancel-in-progress: false
+
+jobs:
+  datos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Bajar los datos públicos
+        run: node tools/construir-datos.js
+      - name: Probar el motor con los datos nuevos
+        run: npm test
+      - name: Subir los datos
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/data/datos.json
+          git commit -m "Datos públicos al $(TZ=America/Argentina/Buenos_Aires date +%d/%m/%Y)" || exit 0
+          git pull --rebase
+          git push

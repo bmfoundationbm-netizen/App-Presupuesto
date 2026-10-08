@@ -1,0 +1,64 @@
+# Mi Presupuesto · arma el programa para Windows y lo publica como versión
+#
+# Se dispara al subir una etiqueta vX.Y.Z (git tag v1.0.1 && git push --tags) o a mano.
+# Publica el instalador y la versión portable en Releases; los programas instalados
+# avisan cuando aparece una versión nueva.
+name: Publicar versión
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      etiqueta:
+        description: 'Etiqueta de la versión (por ejemplo v1.0.1)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Versión
+        id: version
+        run: |
+          etiqueta="${{ github.event.inputs.etiqueta || github.ref_name }}"
+          echo "etiqueta=$etiqueta" >> "$GITHUB_OUTPUT"
+          npm pkg set version="${etiqueta#v}"
+      - name: Empaquetar
+        run: npx electron-builder --win nsis portable --publish never
+      - name: Publicar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          etiqueta="${{ steps.version.outputs.etiqueta }}"
+          version="${etiqueta#v}"
+          cat > notas.md <<NOTAS
+          ## Mi Presupuesto $version
+
+          **Para instalar:** bajá \`Mi-Presupuesto-$version-instalador.exe\` y abrilo. Queda en el menú de inicio y los archivos \`.presupuesto\` se abren con doble clic.
+
+          **Sin instalar:** \`Mi-Presupuesto-$version-portable.exe\` se abre directo (sirve desde un pendrive).
+
+          Windows puede mostrar "Windows protegió su PC" porque el programa no está firmado con un certificado comercial: tocá **Más información** y después **Ejecutar de todas formas**.
+
+          Los datos públicos (IPC, canasta básica, dólar e inflación esperada) se actualizan solos todas las semanas, sin bajar una versión nueva.
+          NOTAS
+          gh release create "$etiqueta" \
+            "dist/Mi-Presupuesto-$version-instalador.exe" \
+            "dist/Mi-Presupuesto-$version-portable.exe" \
+            --title "Mi Presupuesto $version" --notes-file notas.md --latest || \
+          gh release upload "$etiqueta" "dist/Mi-Presupuesto-$version-instalador.exe" "dist/Mi-Presupuesto-$version-portable.exe" --clobber

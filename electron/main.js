@@ -61,7 +61,7 @@ function crearVentana() {
     backgroundColor: colorDeFondo(),
     show: false,
     title: 'Mi Presupuesto',
-    icon: path.join(RAIZ, 'build', 'icon.png'),
+    icon: path.join(WEB, 'icono.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
