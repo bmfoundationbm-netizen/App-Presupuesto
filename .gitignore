@@ -1,0 +1,9 @@
+node_modules/
+dist/
+datos/descargas/
+*.log
+.DS_Store
+Thumbs.db
+# Hogares de prueba: nunca se suben datos de una familia real
+*.presupuesto
+!web/data/ejemplo.presupuesto

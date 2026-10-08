@@ -1,0 +1,29 @@
+{
+  "name": "mi-presupuesto",
+  "productName": "Mi Presupuesto",
+  "version": "0.1.0",
+  "description": "Presupuesto familiar de escritorio, estilo planilla: ingresos, gastos, imprevistos, ahorro, deudas e inversiones, con IPC por categoría, canasta básica y gráfico de Sankey.",
+  "main": "electron/main.js",
+  "private": true,
+  "license": "MIT",
+  "author": "bmfoundationbm-netizen",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test \"pruebas/**/*.test.mjs\"",
+    "datos": "node tools/construir-datos.js",
+    "engho": "node tools/procesar-engho.js",
+    "dist": "electron-builder --win nsis portable --publish never"
+  },
+  "dependencies": {
+    "d3": "^7.9.0",
+    "d3-sankey": "^0.12.3",
+    "exceljs": "^4.4.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "repository": "github:bmfoundationbm-netizen/App-Presupuesto",
+  "homepage": "https://github.com/bmfoundationbm-netizen/App-Presupuesto",
+  "devDependencies": {
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3"
+  }
+}
